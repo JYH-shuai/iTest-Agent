@@ -1,0 +1,285 @@
+[
+  {
+    "id": "case_001",
+    "title": "用户登录-正常登录",
+    "module": "用户中心",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "已注册账号，用户未登录",
+    "steps": [
+      {"step": 1, "action": "打开登录页面", "expected": "页面正常加载，显示用户名和密码输入框"},
+      {"step": 2, "action": "输入正确的用户名和密码", "expected": "输入框正常接受输入"},
+      {"step": 3, "action": "点击登录按钮", "expected": "登录成功，跳转到首页，显示用户信息"}
+    ],
+    "tags": ["登录", "冒烟测试", "核心流程"]
+  },
+  {
+    "id": "case_002",
+    "title": "用户登录-密码错误",
+    "module": "用户中心",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "已注册账号，用户未登录",
+    "steps": [
+      {"step": 1, "action": "打开登录页面", "expected": "页面正常加载"},
+      {"step": 2, "action": "输入正确用户名，错误密码", "expected": "输入框正常接受输入"},
+      {"step": 3, "action": "点击登录按钮", "expected": "提示'用户名或密码错误'，停留在登录页"}
+    ],
+    "tags": ["登录", "异常流程", "安全"]
+  },
+  {
+    "id": "case_003",
+    "title": "用户登录-账号不存在",
+    "module": "用户中心",
+    "type": "功能测试",
+    "priority": "P1",
+    "precondition": "用户未登录",
+    "steps": [
+      {"step": 1, "action": "输入未注册的用户名和任意密码", "expected": "输入框正常接受输入"},
+      {"step": 2, "action": "点击登录按钮", "expected": "提示'账号不存在'"}
+    ],
+    "tags": ["登录", "异常流程"]
+  },
+  {
+    "id": "case_004",
+    "title": "用户登录-连续5次密码错误锁定",
+    "module": "用户中心",
+    "type": "安全测试",
+    "priority": "P0",
+    "precondition": "已注册账号，账号未被锁定",
+    "steps": [
+      {"step": 1, "action": "连续输入5次错误密码", "expected": "前4次提示密码错误，第5次提示'账号已被锁定，请15分钟后重试'"},
+      {"step": 2, "action": "第6次使用正确密码登录", "expected": "提示'账号已被锁定'，无法登录"}
+    ],
+    "tags": ["登录", "安全", "账户锁定"]
+  },
+  {
+    "id": "case_005",
+    "title": "用户注册-正常注册",
+    "module": "用户中心",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "未注册过的手机号/邮箱",
+    "steps": [
+      {"step": 1, "action": "打开注册页面", "expected": "页面正常加载，显示注册表单"},
+      {"step": 2, "action": "填写用户名、密码、手机号、验证码", "expected": "表单正常接受输入"},
+      {"step": 3, "action": "点击发送验证码", "expected": "手机收到6位验证码"},
+      {"step": 4, "action": "输入正确验证码，点击注册", "expected": "注册成功，跳转至登录页或自动登录"}
+    ],
+    "tags": ["注册", "冒烟测试", "核心流程"]
+  },
+  {
+    "id": "case_006",
+    "title": "用户注册-密码复杂度校验",
+    "module": "用户中心",
+    "type": "功能测试",
+    "priority": "P1",
+    "precondition": "在注册页面",
+    "steps": [
+      {"step": 1, "action": "输入纯数字密码'12345678'", "expected": "提示'密码需包含字母和数字'"},
+      {"step": 2, "action": "输入短密码'ab12'", "expected": "提示'密码长度不能少于8位'"},
+      {"step": 3, "action": "输入无大写密码'abc12345'", "expected": "提示'密码需包含大写字母'或通过"},
+      {"step": 4, "action": "输入合法密码'Abc12345!'", "expected": "密码校验通过"}
+    ],
+    "tags": ["注册", "输入校验", "安全"]
+  },
+  {
+    "id": "case_007",
+    "title": "商品搜索-关键词搜索",
+    "module": "商品管理",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "系统中有商品数据",
+    "steps": [
+      {"step": 1, "action": "在搜索框输入商品关键词'手机'", "expected": "显示搜索建议下拉"},
+      {"step": 2, "action": "点击搜索或按Enter", "expected": "展示包含'手机'关键词的商品列表"},
+      {"step": 3, "action": "检查搜索结果", "expected": "每条结果标题或描述中含'手机'，结果按相关度排序"}
+    ],
+    "tags": ["搜索", "核心流程"]
+  },
+  {
+    "id": "case_008",
+    "title": "商品搜索-空结果处理",
+    "module": "商品管理",
+    "type": "功能测试",
+    "priority": "P1",
+    "precondition": "搜索无匹配的关键词",
+    "steps": [
+      {"step": 1, "action": "搜索不存在的商品'xyz123abc'", "expected": "显示'未找到相关商品'提示"},
+      {"step": 2, "action": "检查空结果页面", "expected": "页面显示推荐商品或热门搜索，不会白屏"}
+    ],
+    "tags": ["搜索", "异常流程", "用户体验"]
+  },
+  {
+    "id": "case_009",
+    "title": "商品搜索-特殊字符过滤",
+    "module": "商品管理",
+    "type": "安全测试",
+    "priority": "P1",
+    "precondition": "在搜索页面",
+    "steps": [
+      {"step": 1, "action": "搜索SQL注入语句 ' OR '1'='1", "expected": "系统正常响应，不返回异常数据"},
+      {"step": 2, "action": "搜索XSS脚本 <script>alert(1)</script>", "expected": "搜索词被转义，不执行脚本"},
+      {"step": 3, "action": "搜索超长字符串(1000字符)", "expected": "系统限制输入长度或正常截断处理"}
+    ],
+    "tags": ["搜索", "安全", "输入校验"]
+  },
+  {
+    "id": "case_010",
+    "title": "下单流程-正常下单",
+    "module": "订单管理",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "用户已登录，购物车中有商品，收货地址已设置",
+    "steps": [
+      {"step": 1, "action": "进入购物车，点击结算", "expected": "跳转到订单确认页，显示商品清单和金额"},
+      {"step": 2, "action": "确认收货地址和商品信息", "expected": "地址信息正确，金额计算正确（含优惠和运费）"},
+      {"step": 3, "action": "选择支付方式，点击提交订单", "expected": "跳转到支付页面"},
+      {"step": 4, "action": "完成支付", "expected": "支付成功，订单状态变为'待发货'"}
+    ],
+    "tags": ["下单", "核心流程", "支付"]
+  },
+  {
+    "id": "case_011",
+    "title": "下单流程-库存不足",
+    "module": "订单管理",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "用户已登录，某商品库存为1",
+    "steps": [
+      {"step": 1, "action": "添加该商品2件到购物车", "expected": "提示库存不足，最多可购买1件"},
+      {"step": 2, "action": "另一用户先购买最后1件", "expected": "库存变为0"},
+      {"step": 3, "action": "当前用户尝试提交订单", "expected": "提示'商品已售罄'，订单无法提交"}
+    ],
+    "tags": ["下单", "库存", "并发"]
+  },
+  {
+    "id": "case_012",
+    "title": "下单流程-金额计算验证",
+    "module": "订单管理",
+    "type": "功能测试",
+    "priority": "P0",
+    "precondition": "商品A单价100元，商品B单价50元，满150减20优惠券",
+    "steps": [
+      {"step": 1, "action": "添加商品A和商品B各1件到购物车", "expected": "购物车显示商品总价150元"},
+      {"step": 2, "action": "使用满150减20优惠券", "expected": "优惠后金额130元"},
+      {"step": 3, "action": "计算运费（假设满99包邮）", "expected": "运费0元，应付130元"},
+      {"step": 4, "action": "提交订单", "expected": "订单金额显示130元，支付金额130元"}
+    ],
+    "tags": ["下单", "金额计算", "优惠券"]
+  },
+  {
+    "id": "case_013",
+    "title": "API接口-创建资源",
+    "module": "API通用",
+    "type": "接口测试",
+    "priority": "P1",
+    "precondition": "已获取有效Token",
+    "steps": [
+      {"step": 1, "action": "POST请求，body包含所有必填字段", "expected": "返回201，响应体包含完整资源数据，含id和时间戳"},
+      {"step": 2, "action": "POST请求，缺少必填字段", "expected": "返回400，错误信息明确指出缺失字段"},
+      {"step": 3, "action": "POST请求，字段类型错误（数字字段传字符串）", "expected": "返回400，错误信息说明类型不匹配"},
+      {"step": 4, "action": "POST请求，不传Authorization头", "expected": "返回401"}
+    ],
+    "tags": ["API", "CRUD", "输入校验"]
+  },
+  {
+    "id": "case_014",
+    "title": "API接口-分页查询",
+    "module": "API通用",
+    "type": "接口测试",
+    "priority": "P1",
+    "precondition": "数据库中有100条记录",
+    "steps": [
+      {"step": 1, "action": "GET请求 page=1&size=10", "expected": "返回前10条记录，响应头或body含总数100"},
+      {"step": 2, "action": "GET请求 page=0&size=10", "expected": "若系统视为非法则返回400，否则默认page=1"},
+      {"step": 3, "action": "GET请求 page=11&size=10", "expected": "返回空列表，不报错"},
+      {"step": 4, "action": "GET请求 page=1&size=1000", "expected": "若有限制则截断到最大值，否则返回全部"}
+    ],
+    "tags": ["API", "分页", "边界值"]
+  },
+  {
+    "id": "case_015",
+    "title": "性能测试-首页加载",
+    "module": "前端性能",
+    "type": "性能测试",
+    "priority": "P1",
+    "precondition": "测试环境与生产环境配置一致",
+    "steps": [
+      {"step": 1, "action": "清除缓存后访问首页", "expected": "首次内容绘制FCP < 1.5s，最大内容绘制LCP < 2.5s"},
+      {"step": 2, "action": "再次访问首页（有缓存）", "expected": "页面加载时间 < 500ms"},
+      {"step": 3, "action": "模拟慢3G网络访问", "expected": "页面在8s内可交互，关键内容优先展示"}
+    ],
+    "tags": ["性能", "前端", "用户体验"]
+  },
+  {
+    "id": "case_016",
+    "title": "并发测试-秒杀场景",
+    "module": "订单管理",
+    "type": "性能测试",
+    "priority": "P0",
+    "precondition": "秒杀商品库存100件",
+    "steps": [
+      {"step": 1, "action": "1000用户同时发起秒杀请求", "expected": "仅100个请求成功创建订单，其余返回'已抢光'"},
+      {"step": 2, "action": "检查数据库订单数", "expected": "订单数正好100，无超卖"},
+      {"step": 3, "action": "检查库存扣减", "expected": "库存扣减100，最终库存为0"}
+    ],
+    "tags": ["并发", "秒杀", "数据一致性"]
+  },
+  {
+    "id": "case_017",
+    "title": "文件上传-正常上传",
+    "module": "文件管理",
+    "type": "功能测试",
+    "priority": "P1",
+    "precondition": "用户已登录",
+    "steps": [
+      {"step": 1, "action": "上传一个2MB的PNG图片", "expected": "上传成功，返回文件URL"},
+      {"step": 2, "action": "访问返回的文件URL", "expected": "图片正常显示"},
+      {"step": 3, "action": "检查文件存储路径", "expected": "文件存储在正确目录，文件名未被覆盖"}
+    ],
+    "tags": ["文件上传", "存储"]
+  },
+  {
+    "id": "case_018",
+    "title": "文件上传-类型和大小限制",
+    "module": "文件管理",
+    "type": "安全测试",
+    "priority": "P1",
+    "precondition": "配置允许jpg/png/pdf，最大10MB",
+    "steps": [
+      {"step": 1, "action": "上传.exe可执行文件", "expected": "提示'不支持的文件类型'，文件未存储"},
+      {"step": 2, "action": "上传内容为PHP代码的.jpg文件", "expected": "服务端校验文件真实类型，拒绝或安全处理"},
+      {"step": 3, "action": "上传15MB的合法文件", "expected": "提示'文件大小超出限制'"}
+    ],
+    "tags": ["文件上传", "安全", "输入校验"]
+  },
+  {
+    "id": "case_019",
+    "title": "权限控制-越权访问",
+    "module": "权限管理",
+    "type": "安全测试",
+    "priority": "P0",
+    "precondition": "用户A和用户B均为普通用户",
+    "steps": [
+      {"step": 1, "action": "用户A登录后访问自己的订单详情 /api/orders/123", "expected": "返回订单数据"},
+      {"step": 2, "action": "用户A修改URL访问用户B的订单 /api/orders/456", "expected": "返回403或提示无权访问"},
+      {"step": 3, "action": "用户A修改请求body中的userId为用户B的ID", "expected": "服务端校验token与userId一致性，拒绝操作"}
+    ],
+    "tags": ["安全", "权限", "越权"]
+  },
+  {
+    "id": "case_020",
+    "title": "数据导出-大数据量",
+    "module": "数据管理",
+    "type": "功能测试",
+    "priority": "P1",
+    "precondition": "数据库中有10万条记录",
+    "steps": [
+      {"step": 1, "action": "点击导出全部数据", "expected": "提示'数据量较大，将在后台处理，完成后通知下载'或启动异步任务"},
+      {"step": 2, "action": "导出100条筛选结果", "expected": "直接下载Excel文件，内容正确"},
+      {"step": 3, "action": "导出过程中取消", "expected": "取消成功，不产生垃圾文件"}
+    ],
+    "tags": ["导出", "大数据", "用户体验"]
+  }
+]

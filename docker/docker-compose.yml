@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  # ── Agent 服务（FastAPI）──
+  itest-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: itest-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ITEST_OUTPUT_ROOT=/data/output
+      - ITEST_KB_DIR=/data/chroma_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - ITEST_MOCK_LLM=${ITEST_MOCK_LLM:-1}
+      - ITEST_EXECUTION_MODE=${ITEST_EXECUTION_MODE:-simulated}
+    volumes:
+      - itest_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Playwright MCP Server（执行环境，可选，SSE 对外）──
+  mcp-playwright:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: itest-mcp-playwright
+    command: >
+      python -m mcp_servers.playwright_mcp_server
+      --transport sse --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    environment:
+      - PLAYWRIGHT_HEADLESS=true
+    restart: unless-stopped
+
+  # ── API Test MCP Server（可选，SSE 对外）──
+  mcp-api-test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: itest-mcp-api-test
+    command: >
+      python -m mcp_servers.api_test_mcp_server
+      --transport sse --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+    restart: unless-stopped
+
+volumes:
+  itest_data:
