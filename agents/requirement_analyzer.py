@@ -226,10 +226,12 @@ def _infer_priority(title: str) -> str:
     return "P1"
 
 
-def _infer_suggestions(title: str) -> List[TestSuggestion]:
+def _infer_suggestions(title: str) -> "List[TestSuggestion]":
     """根据标题推断测试建议（规则降级用）"""
+    from agents.requirement_analyzer import TestSuggestion
+
     lower = title.lower()
-    suggestions: List[TestSuggestion] = []
+    suggestions: "List[TestSuggestion]" = []
     if any(kw in lower for kw in ("输入", "填写", "注册", "登录")):
         suggestions.append(
             TestSuggestion(method="等价类划分", suggestion="覆盖合法/非法/空值输入")
