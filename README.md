@@ -12,6 +12,7 @@
 | 增量更新 | 需求变更时仅重生成变更功能对应用例 |
 | MCP 工具执行 | 自研 Playwright MCP Server 与 API Test MCP Server，标准协议对接真实工具 |
 | 模拟降级 | 无浏览器/无 API Key 环境自动降级，保证全流程可演示 |
+| Web UI | Gradio 可视化界面：PRD 上传、进度跟踪、用例/报告查看、增量更新、历史任务 |
 | 多格式报告 | Markdown / PDF / JSON / Excel |
 | 一键部署 | Docker Compose 启动 Agent 服务 + 执行环境 |
 
@@ -59,6 +60,8 @@ iTest-Agent/
 ├── knowledge_base/             # RAG 知识库（方法论 + 历史用例）
 ├── models/                     # 数据模型（TestCase/追溯）
 ├── exporters/                  # Excel / JSON 导出
+├── frontend/                   # Gradio Web UI
+│   └── app.py                  # 可视化界面（对接 FastAPI）
 ├── docker/                     # Dockerfile + docker-compose
 ├── docs/需求分析.md            # 需求分析说明书
 └── tests/                      # 单元/集成测试
@@ -90,8 +93,29 @@ docker compose up -d --build
 
 启动后：
 - API 服务：http://localhost:8000 （Swagger 文档：http://localhost:8000/docs）
+- Web UI：http://localhost:7860 （见下文「Web UI」）
 - Playwright MCP Server（SSE）：http://localhost:8001
 - API Test MCP Server（SSE）：http://localhost:8002
+
+### 2.5 Web UI（Gradio）
+
+```bash
+# 先启动 API 服务（端口 8000），再启动 UI
+pip install gradio
+python frontend/app.py
+# 打开 http://127.0.0.1:7860
+```
+
+功能：
+- 上传 PRD 文件或直接粘贴文本，一键触发全流程
+- 参数面板：LLM 模型 / 执行模式（simulated|mcp）/ Mock LLM（无 API Key 离线演示）/ 评审迭代轮数
+- 实时进度：任务状态 + 阶段进度条（分析 -> 生成 -> 评审 -> 执行 -> 报告）
+- 结果查看：功能点列表、45+ 条用例明细（含步骤/预期）、评审得分、执行统计
+- 报告在线预览 + Markdown/PDF/JSON 下载
+- 增量更新：勾选变更功能点，仅重生成受影响用例
+- 历史任务：最近 20 条任务，点击行回看结果
+
+UI 通过环境变量配置后端地址：`ITEST_API_BASE`（默认 `http://127.0.0.1:8000`）、`ITEST_UI_PORT`（默认 `7860`）。
 
 ### 3. 命令行演示完整工作流
 
