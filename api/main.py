@@ -79,9 +79,13 @@ def _run_pipeline(task_id: str) -> None:
         output_dir = task["output_dir"]
         os.makedirs(output_dir, exist_ok=True)
 
-        # 环境变量透传（Mock LLM / 执行模式）
+        # 环境变量透传（Mock LLM / 执行模式 / LLM Key）
         if options.get("mock_llm"):
             os.environ["ITEST_MOCK_LLM"] = "1"
+        elif options.get("llm_api_key"):
+            os.environ["OPENAI_API_KEY"] = options["llm_api_key"]
+        if options.get("llm_base_url"):
+            os.environ["OPENAI_BASE_URL"] = options["llm_base_url"]
         if options.get("api_base_url"):
             os.environ["ITEST_API_BASE_URL"] = options["api_base_url"]
 
@@ -279,6 +283,8 @@ async def run_pipeline(
     max_review_rounds: int = Form(3),
     sync: bool = Form(False),
     api_base_url: str = Form(""),
+    llm_api_key: str = Form(""),
+    llm_base_url: str = Form(""),
 ):
     """
     上传 PRD 并触发完整流水线：
@@ -301,6 +307,8 @@ async def run_pipeline(
             "mock_llm": mock_llm,
             "max_review_rounds": max_review_rounds,
             "api_base_url": api_base_url,
+            "llm_api_key": llm_api_key,
+            "llm_base_url": llm_base_url,
         },
     )
 

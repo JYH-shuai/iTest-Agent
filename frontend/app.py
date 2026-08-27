@@ -55,32 +55,28 @@ def api_health() -> dict:
 
 
 def api_start_pipeline(prd_file, prd_text, model, execution_mode,
-                       mock_llm, max_review_rounds, sync=False) -> dict:
+                       mock_llm, max_review_rounds, llm_api_key="",
+                       llm_base_url="", sync=False) -> dict:
     """上传 PRD 并触发流水线，返回 {task_id, status, detail}"""
     # 文件优先，其次粘贴文本
+    data = {
+        "model": model,
+        "execution_mode": execution_mode,
+        "mock_llm": "true" if mock_llm else "false",
+        "max_review_rounds": str(max_review_rounds),
+        "sync": "true" if sync else "false",
+        "llm_api_key": llm_api_key or "",
+        "llm_base_url": llm_base_url or "",
+    }
     if prd_file is not None:
         path = prd_file if isinstance(prd_file, str) else prd_file.name
         with open(path, "rb") as f:
             files = {"file": (os.path.basename(path), f, "text/markdown")}
-            data = {
-                "model": model,
-                "execution_mode": execution_mode,
-                "mock_llm": "true" if mock_llm else "false",
-                "max_review_rounds": str(max_review_rounds),
-                "sync": "true" if sync else "false",
-            }
             r = httpx.post(f"{API_BASE}/api/v1/pipeline",
                            files=files, data=data, timeout=30)
     elif prd_text and prd_text.strip():
         files = {"file": ("pasted_prd.md", prd_text.encode("utf-8"),
                           "text/markdown")}
-        data = {
-            "model": model,
-            "execution_mode": execution_mode,
-            "mock_llm": "true" if mock_llm else "false",
-            "max_review_rounds": str(max_review_rounds),
-            "sync": "true" if sync else "false",
-        }
         r = httpx.post(f"{API_BASE}/api/v1/pipeline",
                        files=files, data=data, timeout=30)
     else:
@@ -243,12 +239,17 @@ def execution_summary(execution: dict) -> str:
 # ─────────────────────────────────────────────
 
 def start_pipeline(prd_file, prd_text, model, execution_mode, mock_llm,
-                   max_review_rounds, progress=gr.Progress()):
+                   max_review_rounds, llm_api_key, llm_base_url,
+                   progress=gr.Progress()):
     """触发流水线并阻塞轮询直到完成（Gradio progress 保持 UI 活跃）"""
     progress(0, desc="提交任务…")
+    # 填了 API Key 时强制走真实 LLM（覆盖 Mock）
+    if llm_api_key and llm_api_key.strip():
+        mock_llm = False
     try:
         resp = api_start_pipeline(prd_file, prd_text, model, execution_mode,
-                                  mock_llm, max_review_rounds)
+                                  mock_llm, max_review_rounds,
+                                  llm_api_key or "", llm_base_url or "")
     except ValueError as e:
         raise gr.Error(str(e))
     except Exception as e:
@@ -381,11 +382,21 @@ def build_ui() -> gr.Blocks:
                         lines=6,
                     )
                     gr.Markdown("### ② 参数")
-                    model_dd = gr.Dropdown(
+                    model_tb = gr.Textbox(
                         label="LLM 模型",
-                        choices=["gpt-4o-mini", "gpt-4o",
-                                 "deepseek-chat", "qwen-plus"],
-                        value="gpt-4o-mini",
+                        value="deepseek-chat",
+                        info="DeepSeek: deepseek-chat / deepseek-reasoner",
+                    )
+                    key_tb = gr.Textbox(
+                        label="API Key（留空则走 Mock 规则解析）",
+                        type="password",
+                        placeholder="sk-...",
+                        info="DeepSeek 平台申请；填写后走真实 LLM，不填且未配置服务端 Key 时自动降级 Mock",
+                    )
+                    baseurl_tb = gr.Textbox(
+                        label="API Base URL（OpenAI 兼容接口）",
+                        value="https://api.deepseek.com/v1",
+                        info="DeepSeek 官方地址已预填，可换成其他兼容服务",
                     )
                     exec_dd = gr.Dropdown(
                         label="执行模式",
@@ -456,8 +467,8 @@ def build_ui() -> gr.Blocks:
         # ── 事件绑定 ──
         start_btn.click(
             fn=start_pipeline,
-            inputs=[prd_file, prd_text, model_dd, exec_dd, mock_cb,
-                    rounds_sl],
+            inputs=[prd_file, prd_text, model_tb, exec_dd, mock_cb,
+                    rounds_sl, key_tb, baseurl_tb],
             outputs=task_state,
         ).then(
             fn=render_results,
