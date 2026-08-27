@@ -80,12 +80,18 @@ def _run_pipeline(task_id: str) -> None:
         os.makedirs(output_dir, exist_ok=True)
 
         # 环境变量透传（Mock LLM / 执行模式 / LLM Key）
+        # 注意：进程级环境变量会跨任务残留，每次按本次任务选项重置
         if options.get("mock_llm"):
             os.environ["ITEST_MOCK_LLM"] = "1"
-        elif options.get("llm_api_key"):
-            os.environ["OPENAI_API_KEY"] = options["llm_api_key"]
+            os.environ.pop("OPENAI_API_KEY", None)
+        else:
+            os.environ.pop("ITEST_MOCK_LLM", None)
+            if options.get("llm_api_key"):
+                os.environ["OPENAI_API_KEY"] = options["llm_api_key"]
         if options.get("llm_base_url"):
             os.environ["OPENAI_BASE_URL"] = options["llm_base_url"]
+        else:
+            os.environ.pop("OPENAI_BASE_URL", None)
         if options.get("api_base_url"):
             os.environ["ITEST_API_BASE_URL"] = options["api_base_url"]
 
