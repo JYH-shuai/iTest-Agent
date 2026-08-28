@@ -74,7 +74,10 @@ iTest-Agent/
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+# 推荐：锁版本安装（依赖组合经测试验证）
+pip install -r requirements.lock
+# 或：宽松安装（requirements.txt 仅约束最低版本）
+# pip install -r requirements.txt
 
 # 构建知识库（可选，Mock 模式会自动降级）
 python load_knowledge_base.py

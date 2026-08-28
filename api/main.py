@@ -79,21 +79,7 @@ def _run_pipeline(task_id: str) -> None:
         output_dir = task["output_dir"]
         os.makedirs(output_dir, exist_ok=True)
 
-        # 环境变量透传（Mock LLM / 执行模式 / LLM Key）
-        # 注意：进程级环境变量会跨任务残留，每次按本次任务选项重置
-        if options.get("mock_llm"):
-            os.environ["ITEST_MOCK_LLM"] = "1"
-            os.environ.pop("OPENAI_API_KEY", None)
-        else:
-            os.environ.pop("ITEST_MOCK_LLM", None)
-            if options.get("llm_api_key"):
-                os.environ["OPENAI_API_KEY"] = options["llm_api_key"]
-        if options.get("llm_base_url"):
-            os.environ["OPENAI_BASE_URL"] = options["llm_base_url"]
-        else:
-            os.environ.pop("OPENAI_BASE_URL", None)
-        if options.get("api_base_url"):
-            os.environ["ITEST_API_BASE_URL"] = options["api_base_url"]
+        # LLM 配置走任务级 state（不再污染进程环境变量，支持并发任务）
 
         from graph.state import (
             create_initial_state,
@@ -102,11 +88,25 @@ def _run_pipeline(task_id: str) -> None:
         from graph.workflow import build_itest_workflow
 
         checkpoint_db = os.path.join(output_dir, "itest_checkpoints.db")
-        kb_dir = os.getenv(
+        # 每个任务使用独立的知识库目录（只读副本），避免并发任务竞争共享 chroma_db
+        shared_kb = os.getenv(
             "ITEST_KB_DIR", os.path.join(_PROJECT_ROOT, "chroma_db")
         )
+        kb_dir = os.path.join(output_dir, "kb")
+        if os.path.isdir(shared_kb) and not os.path.exists(kb_dir):
+            try:
+                import shutil
+
+                shutil.copytree(shared_kb, kb_dir)
+            except Exception:
+                kb_dir = shared_kb  # 复制失败则退回共享目录
+        else:
+            kb_dir = shared_kb
         common = dict(
             llm_model=options.get("model", "gpt-4o-mini"),
+            llm_api_key=options.get("llm_api_key", "") or "",
+            llm_base_url=options.get("llm_base_url", "") or "",
+            mock_llm=bool(options.get("mock_llm", False)),
             output_dir=output_dir,
             kb_persist_dir=kb_dir,
             checkpoint_db_path=checkpoint_db,

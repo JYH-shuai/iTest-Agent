@@ -162,6 +162,9 @@ class AgentState(TypedDict, total=False):
 
     # ---- 外部依赖 ----
     llm_model: str                         # 默认 LLM 模型名称
+    llm_api_key: str                       # 任务级 LLM API Key（空=未提供）
+    llm_base_url: str                      # 任务级 LLM Base URL（OpenAI 兼容）
+    mock_llm: bool                         # 任务级 Mock 开关（规则解析降级）
     kb_persist_dir: str                    # Chroma 知识库持久化目录
     output_dir: str                        # 输出目录
     checkpoint_db_path: str                # Checkpoint SQLite 路径
@@ -181,6 +184,9 @@ def create_initial_state(
     config: Optional[Dict[str, Any]] = None,
     change_type: str = "none",
     previous_analysis_path: str = "",
+    llm_api_key: str = "",
+    llm_base_url: str = "",
+    mock_llm: bool = False,
 ) -> AgentState:
     """
     创建初始工作流状态
@@ -214,6 +220,9 @@ def create_initial_state(
         "error_history": [],
         "messages": [],
         "llm_model": llm_model,
+        "llm_api_key": llm_api_key,
+        "llm_base_url": llm_base_url,
+        "mock_llm": mock_llm,
         "kb_persist_dir": kb_persist_dir,
         "output_dir": output_dir,
         "checkpoint_db_path": checkpoint_db_path,

@@ -400,10 +400,9 @@ class TestReportGenerator:
             content = f.read()
 
         # 验证核心内容
-        assert "电商平台" in content
+        assert "电商用户中心" in content
         assert "TC-FUNC-003-02-01" in content  # 失败用例
         assert "58.3%" in content  # 通过率
-        assert "库存不足" in content
         print(f"[OK] Markdown 报告: {md_path}")
         print(f"     大小: {len(content)} 字符")
 

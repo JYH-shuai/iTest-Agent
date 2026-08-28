@@ -354,6 +354,9 @@ class RequirementAnalyzer:
         temperature: float = 0.1,
         max_retries: int = 2,
         kb_persist_dir: Optional[str] = None,
+        llm_api_key: Optional[str] = None,
+        llm_base_url: Optional[str] = None,
+        mock_llm: Optional[bool] = None,
     ) -> None:
         """
         初始化需求分析 Agent
@@ -363,10 +366,21 @@ class RequirementAnalyzer:
             temperature: 生成温度（低温度保证结构化输出稳定性）
             max_retries: LLM 调用失败时的最大重试次数
             kb_persist_dir: Chroma 持久化目录路径
+            llm_api_key: 任务级 API Key（None=回退环境变量 OPENAI_API_KEY）
+            llm_base_url: 任务级 Base URL（None=回退环境变量 OPENAI_BASE_URL）
+            mock_llm: 任务级 Mock 开关（None=回退环境变量 ITEST_MOCK_LLM）
         """
         self.llm_model = llm_model
         self.temperature = temperature
         self.max_retries = max_retries
+        # 任务级配置（优先）；未提供时回退环境变量（兼容 CLI/测试用法）
+        self.llm_api_key = llm_api_key if llm_api_key is not None \
+            else os.getenv("OPENAI_API_KEY", "")
+        self.llm_base_url = llm_base_url if llm_base_url is not None \
+            else os.getenv("OPENAI_BASE_URL", "")
+        if mock_llm is None:
+            mock_llm = os.getenv("ITEST_MOCK_LLM", "").lower() in ("1", "true", "yes")
+        self.mock_llm = mock_llm
 
         # LLM 延迟初始化（避免导入/测试时因缺少 API Key 而崩溃）
         self._llm: Optional[ChatOpenAI] = None
@@ -378,13 +392,18 @@ class RequirementAnalyzer:
 
     @property
     def llm(self) -> ChatOpenAI:
-        """延迟初始化 LLM，仅在需要调用时创建"""
+        """延迟初始化 LLM，仅在需要调用时创建（任务级配置优先）"""
         if self._llm is None:
-            self._llm = ChatOpenAI(
-                model=self.llm_model,
-                temperature=self.temperature,
-                max_tokens=4096,
-            )
+            kwargs: Dict[str, Any] = {
+                "model": self.llm_model,
+                "temperature": self.temperature,
+                "max_tokens": 4096,
+            }
+            if self.llm_api_key:
+                kwargs["api_key"] = self.llm_api_key
+            if self.llm_base_url:
+                kwargs["base_url"] = self.llm_base_url
+            self._llm = ChatOpenAI(**kwargs)
         return self._llm
 
     def _read_prd(self, file_path: str) -> str:
@@ -542,10 +561,10 @@ class RequirementAnalyzer:
         # 1. 读取 PRD
         prd_content = self._read_prd(prd_path)
 
-        # 0. 无 API Key / 显式 Mock 模式 → 规则解析降级（保证流程可演示）
-        mock_llm = os.getenv("ITEST_MOCK_LLM", "").lower() in ("1", "true", "yes")
-        if mock_llm or not os.getenv("OPENAI_API_KEY"):
-            print("[降级] 未配置 OPENAI_API_KEY 或启用 ITEST_MOCK_LLM，使用规则解析")
+        # 0. 无 API Key / 显式 Mock 模式 -> 规则解析降级（保证流程可演示）
+        #    判断依据为任务级配置（构造参数），不再依赖进程级环境变量
+        if self.mock_llm or not self.llm_api_key:
+            print("[降级] 未提供 API Key 或启用 Mock 模式，使用规则解析")
             result = rule_based_analyze(prd_content)
             self._enrich_requirement_refs(result, prd_path)
             return result

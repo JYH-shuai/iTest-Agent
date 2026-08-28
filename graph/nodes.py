@@ -250,6 +250,9 @@ def analyze_requirements(state: AgentState) -> AgentState:
             temperature=state.get("config", {}).get("analyzer_temperature", 0.1),
             max_retries=state.get("max_retries", 2),
             kb_persist_dir=state.get("kb_persist_dir") or None,
+            llm_api_key=state.get("llm_api_key") or "",
+            llm_base_url=state.get("llm_base_url") or "",
+            mock_llm=bool(state.get("mock_llm", False)),
         )
 
         # 确定输出路径
