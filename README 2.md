@@ -74,10 +74,7 @@ iTest-Agent/
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-# 推荐：锁版本安装（依赖组合经测试验证）
-pip install -r requirements.lock
-# 或：宽松安装（requirements.txt 仅约束最低版本）
-# pip install -r requirements.txt
+pip install -r requirements.txt
 
 # 构建知识库（可选，Mock 模式会自动降级）
 python load_knowledge_base.py
@@ -131,27 +128,6 @@ ITEST_MOCK_LLM=1 ITEST_EXECUTION_MODE=simulated \
 ITEST_EXECUTION_MODE=mcp ITEST_API_BASE_URL=https://api.example.com \
   python graph/demo.py --prd tests/sample_prd.md
 ```
-
-### 3.1 MCP 真实执行 Demo（自带被测系统）
-
-内置一个注册/登录演示系统（含 2 个刻意埋入的缺陷），一键演示
-「真实执行 -> 失败用例 -> 缺陷聚类」闭环：
-
-```bash
-# 1. 安装浏览器（首次）
-python -m playwright install chromium
-
-# 2. 启动被测系统（端口 8090）
-python docker/demo_app.py
-
-# 3. MCP 真实执行 5 条用例并生成缺陷聚类报告
-python docker/run_demo_cases.py
-# 产物: output/demo_execution_log.json / output/demo_test_report.md
-```
-
-预期结果：3/5 通过，2 条失败精确复现埋点缺陷——
-`BUG-001` 密码校验文案错误（预期 8-20 位，实际提示 6-20 位）、
-`BUG-002` 登录失败无任何提示。
 
 ## API 接口
 

@@ -195,10 +195,15 @@ def _parse_ui_case(
             plan.ui_actions.append(UIAction(action="navigate", value=m.group(0)))
             continue
 
-        # 填充动作：尝试从 test_data 获取选择器
+        # 填充动作：尝试从 test_data 获取选择器（中文 key 匹配动作文本）
         if any(kw in action_text for kw in _FILL_KEYWORDS):
-            selector = _match_selector(action_text, selectors)
+            selector, matched_key = _match_selector(action_text, selectors)
             value = _extract_fill_value(action_text)
+            # 结构化值优先：test_data["values"][字段名]（如 手机号 -> 13800138000）
+            if matched_key:
+                v = (test_data.get("values") or {}).get(matched_key)
+                if v:
+                    value = str(v)
             if selector is None:
                 plan.notes.append(f"步骤「{action_text}」缺少选择器，按模拟处理")
                 plan.ui_actions.append(
@@ -210,19 +215,9 @@ def _parse_ui_case(
             )
             continue
 
-        # 点击动作
-        if any(kw in action_text for kw in _CLICK_KEYWORDS):
-            selector = _match_selector(action_text, selectors)
-            if selector is None:
-                plan.notes.append(f"步骤「{action_text}」缺少选择器，按模拟处理")
-                plan.ui_actions.append(UIAction(action="simulate", value=action_text))
-                continue
-            plan.ui_actions.append(UIAction(action="click", selector=selector))
-            continue
-
-        # 断言动作
-        if any(kw in action_text for kw in _ASSERT_KEYWORDS) or expected_text:
-            selector = _match_selector(action_text, selectors)
+        # 断言动作（优先于点击：验证/检查/断言类文本即使含动作词也按断言处理）
+        if any(kw in action_text for kw in _ASSERT_KEYWORDS):
+            selector, _ = _match_selector(action_text, selectors)
             expected = expected_text or action_text
             if selector is None:
                 plan.notes.append(f"断言步骤「{action_text}」缺少选择器，仅记录预期")
@@ -239,9 +234,19 @@ def _parse_ui_case(
             )
             continue
 
+        # 点击动作
+        if any(kw in action_text for kw in _CLICK_KEYWORDS):
+            selector, _ = _match_selector(action_text, selectors)
+            if selector is None:
+                plan.notes.append(f"步骤「{action_text}」缺少选择器，按模拟处理")
+                plan.ui_actions.append(UIAction(action="simulate", value=action_text))
+                continue
+            plan.ui_actions.append(UIAction(action="click", selector=selector))
+            continue
+
         # 等待动作
         if any(kw in action_text for kw in _WAIT_KEYWORDS):
-            selector = _match_selector(action_text, selectors)
+            selector, _ = _match_selector(action_text, selectors)
             plan.ui_actions.append(
                 UIAction(
                     action="wait",
@@ -267,31 +272,50 @@ def _parse_ui_case(
     return plan
 
 
-def _match_selector(action_text: str, selectors: Dict[str, str]) -> Optional[str]:
+def _match_selector(
+    action_text: str, selectors: Dict[str, str]
+) -> tuple:
     """
-    根据动作文本关键词匹配 test_data 中的选择器。
+    根据动作文本关键词匹配 test_data 中的选择器，返回 (selector, matched_key)。
 
     匹配策略：选择在文本中最早出现的关键词（避免 "用户名" 与
     "错误提示" 同时出现时误匹配），其次匹配最长关键词。
+
+    支持中文 key（如 "手机号" 匹配「输入手机号」）与英文 key 兜底。
     """
     candidates = []
     for key, selector in selectors.items():
         if key and key in action_text:
             pos = action_text.index(key)
-            candidates.append((pos, -len(key), selector))
+            candidates.append((pos, -len(key), selector, key))
     if candidates:
         candidates.sort()
-        return candidates[0][2]
-    # 常见选择器兜底
+        return candidates[0][2], candidates[0][3]
+    # 常见选择器兜底（中文字段名）
     if "登录" in action_text or "提交" in action_text:
-        return selectors.get("submit") or selectors.get("login") or "button[type=submit]"
+        return (selectors.get("登录") or selectors.get("提交")
+                or selectors.get("submit") or selectors.get("login")
+                or "button[type=submit]"), None
     if "用户名" in action_text or "账号" in action_text or "邮箱" in action_text:
-        return selectors.get("username") or selectors.get("account") or "input[name=username]"
+        return (selectors.get("用户名") or selectors.get("账号")
+                or selectors.get("邮箱") or selectors.get("username")
+                or "input[name=username]"), None
+    if "手机号" in action_text:
+        return selectors.get("手机号") or selectors.get("phone") \
+            or "input[name=phone]", "手机号"
     if "密码" in action_text:
-        return selectors.get("password") or "input[name=password]"
+        return selectors.get("密码") or selectors.get("password") \
+            or "input[name=password]", "密码"
+    if "昵称" in action_text:
+        return selectors.get("昵称") or selectors.get("nickname") \
+            or "input[name=nickname]", "昵称"
     if "验证码" in action_text:
-        return selectors.get("captcha") or "input[name=captcha]"
-    return None
+        return selectors.get("验证码") or selectors.get("captcha") \
+            or "input[name=captcha]", "验证码"
+    if "提示" in action_text or "消息" in action_text or "错误" in action_text:
+        return selectors.get("提示") or selectors.get("消息") \
+            or selectors.get("msg") or "#msg", "提示"
+    return None, None
 
 
 def _extract_fill_value(action_text: str) -> str:
