@@ -76,6 +76,26 @@ class TestPipeline:
         )
         assert resp.status_code == 400
 
+    def test_target_url_in_options(self, prd_file):
+        """入参 target_url 应落入任务 options（供执行节点读取），与执行模式解耦"""
+        resp = client.post(
+            "/api/v1/pipeline",
+            files={"file": ("sample_prd.md", io.BytesIO(prd_file), "text/markdown")},
+            data={
+                "mock_llm": "true",
+                "execution_mode": "simulated",
+                "sync": "true",
+                "target_url": "http://127.0.0.1:8090",
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        task_id = resp.json()["task_id"]
+        # 直接查任务存储的 options，确认 target_url 被持久化
+        from api.main import TASK_STORE
+        task = TASK_STORE.get_task(task_id)
+        assert task is not None
+        assert task["options"]["target_url"] == "http://127.0.0.1:8090"
+
 
 class TestTaskNotFound:
     def test_missing_task(self):

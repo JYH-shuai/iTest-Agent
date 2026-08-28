@@ -56,7 +56,7 @@ def api_health() -> dict:
 
 def api_start_pipeline(prd_file, prd_text, model, execution_mode,
                        mock_llm, max_review_rounds, llm_api_key="",
-                       llm_base_url="", sync=False) -> dict:
+                       llm_base_url="", target_url="", sync=False) -> dict:
     """上传 PRD 并触发流水线，返回 {task_id, status, detail}"""
     # 文件优先，其次粘贴文本
     data = {
@@ -67,6 +67,7 @@ def api_start_pipeline(prd_file, prd_text, model, execution_mode,
         "sync": "true" if sync else "false",
         "llm_api_key": llm_api_key or "",
         "llm_base_url": llm_base_url or "",
+        "target_url": target_url or "",
     }
     if prd_file is not None:
         path = prd_file if isinstance(prd_file, str) else prd_file.name
@@ -257,17 +258,21 @@ def execution_summary(execution: dict) -> str:
 # ─────────────────────────────────────────────
 
 def start_pipeline(prd_file, prd_text, model, execution_mode, mock_llm,
-                   max_review_rounds, llm_api_key, llm_base_url,
+                   max_review_rounds, llm_api_key, llm_base_url, target_url,
                    progress=gr.Progress()):
     """触发流水线并阻塞轮询直到完成（Gradio progress 保持 UI 活跃）"""
     progress(0, desc="提交任务…")
     # 填了 API Key 时强制走真实 LLM（覆盖 Mock）
     if llm_api_key and llm_api_key.strip():
         mock_llm = False
+    # mcp 模式必须提供目标地址
+    if execution_mode == "mcp" and not (target_url or "").strip():
+        raise gr.Error("⚠️ 已选 MCP 真实执行，必须填写被测目标地址")
     try:
         resp = api_start_pipeline(prd_file, prd_text, model, execution_mode,
                                   mock_llm, max_review_rounds,
-                                  llm_api_key or "", llm_base_url or "")
+                                  llm_api_key or "", llm_base_url or "",
+                                  target_url or "")
     except ValueError as e:
         raise gr.Error(str(e))
     except Exception as e:
@@ -453,6 +458,16 @@ def build_ui() -> gr.Blocks:
                         value="simulated",
                         info="simulated=模拟执行（无需环境）；mcp=真实执行",
                     )
+                    target_url_tb = gr.Textbox(
+                        label="被测目标地址（mcp 必填）",
+                        placeholder="如 http://127.0.0.1:8090 或 https://api.example.com",
+                        info="选 mcp 时需提供被测系统地址，将注入到未指定 url 的用例；api 用例作为 Base URL",
+                    )
+                    with gr.Row():
+                        target_warn = gr.Markdown(
+                            "⚠️ 当前为**模拟执行**，被测目标地址可留空",
+                            elem_classes=["mcp-hint"],
+                        )
                     mock_cb = gr.Checkbox(
                         label="Mock LLM（无 API Key 离线演示）",
                         value=False,
@@ -523,7 +538,7 @@ def build_ui() -> gr.Blocks:
         start_btn.click(
             fn=start_pipeline,
             inputs=[prd_file, prd_text, model_tb, exec_dd, mock_cb,
-                    rounds_sl, key_tb, baseurl_tb],
+                    rounds_sl, key_tb, baseurl_tb, target_url_tb],
             outputs=task_state,
         ).then(
             fn=refresh_status,
@@ -534,6 +549,18 @@ def build_ui() -> gr.Blocks:
             if (tid and auto) else gr.Timer(active=False),
             inputs=[task_state, auto_cb],
             outputs=[status_timer],
+        )
+
+        # 执行模式联动：mcp 时提示必填（改文案 + 可见性）
+        exec_dd.change(
+            fn=lambda mode: gr.update(
+                visible=True,
+                value=("⚠️ 已选 **MCP 真实执行**，被测目标地址必填，将从该地址启动页面/请求"
+                       if mode == "mcp"
+                       else "⚠️ 当前为**模拟执行**，被测目标地址可留空"),
+            ),
+            inputs=[exec_dd],
+            outputs=[target_warn],
         )
 
         # 定时器：任务运行中每 3s 刷新；结束时停表并渲染结果

@@ -735,11 +735,18 @@ def execute_testcases(state: AgentState) -> AgentState:
             cfg.get("execution_mode")
             or os.getenv("ITEST_EXECUTION_MODE", "simulated")
         )
+        # 被测目标地址：优先取用户在前端填的 target_url，其次环境变量
+        target_url = (
+            cfg.get("target_url")
+            or cfg.get("api_base_url")
+            or os.getenv("ITEST_TARGET_URL", "")
+            or os.getenv("ITEST_API_BASE_URL", "")
+        )
         from execution.engine import ExecutionEngine
 
         engine = ExecutionEngine(
             mode=exec_mode,
-            api_base_url=os.getenv("ITEST_API_BASE_URL", ""),
+            api_base_url=target_url,
             request_timeout=float(os.getenv("ITEST_EXECUTION_TIMEOUT", "30")),
         )
 

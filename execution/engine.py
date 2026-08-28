@@ -175,6 +175,19 @@ class ExecutionEngine:
         """
         case_id = test_case.get("case_id", "unknown")
         title = test_case.get("title", "untitled")
+
+        # ── 全局目标地址兜底注入：mcp 模式下，用例未指定 url 时补全 ──
+        if self.mode == "mcp" and self.api_base_url:
+            td = test_case.get("test_data") or {}
+            if isinstance(td, dict) and not str(
+                td.get("url", "") or td.get("path", "") or ""
+            ).strip():
+                # api 用例 -> 注入 path/url 作为请求目标；ui 用例 -> 注入 url 作为页面
+                td = dict(td)
+                td["url"] = self.api_base_url
+                td["_injected_url"] = True
+                test_case["test_data"] = td
+
         plan = parse_case(test_case)
         t0 = time.time()
 
