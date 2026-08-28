@@ -193,6 +193,13 @@ async def login(req: Request) -> JSONResponse:
     return JSONResponse({"ok": False, "code": "AUTH_FAILED", "message": "手机号或密码错误"})
 
 
+@app.post("/api/reset")
+async def reset() -> JSONResponse:
+    """清空用户数据（仅供自动化测试重置状态）"""
+    USERS.clear()
+    return JSONResponse({"ok": True, "message": "已重置"})
+
+
 if __name__ == "__main__":
     print("iTest-Agent Demo App: http://127.0.0.1:8090")
     uvicorn.run(app, host="127.0.0.1", port=8090, log_level="warning")

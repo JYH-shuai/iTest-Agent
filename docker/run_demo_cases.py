@@ -17,7 +17,11 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import httpx
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from docker.demo_cases import write_suite  # noqa: E402
 from execution.engine import ExecutionEngine  # noqa: E402
@@ -27,6 +31,12 @@ OUTPUT_DIR = os.path.join(ROOT, "output")
 
 
 def main() -> int:
+    # 重置被测系统状态（保证可重复执行）
+    try:
+        httpx.post("http://127.0.0.1:8090/api/reset", timeout=5)
+    except Exception:
+        print("[warn] 被测系统未运行或 reset 失败，请先启动 docker/demo_app.py")
+
     suite_path = write_suite(os.path.join(OUTPUT_DIR, "demo_suite.json"))
     with open(suite_path, encoding="utf-8") as f:
         suite = json.load(f)
