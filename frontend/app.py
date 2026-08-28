@@ -365,13 +365,13 @@ def check_backend():
 def build_ui() -> gr.Blocks:
     with gr.Blocks(title="iTest-Agent 智能测试平台") as app:
         gr.Markdown("# 🧪 iTest-Agent 智能测试平台")
-        gr.Markdown("输入 PRD → 自动生成测试用例 → 评审 → 执行 → 测试报告")
+        gr.Markdown("输入 PRD -> 自动生成测试用例 -> 评审 -> 执行 -> 测试报告")
         backend_status = gr.Markdown(check_backend)
 
         with gr.Tab("🚀 全流程"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    gr.Markdown("### ① 输入 PRD")
+                    gr.Markdown("#### ① 输入 PRD")
                     prd_file = gr.File(
                         label="上传 PRD（.md）",
                         file_types=[".md"],
@@ -379,9 +379,10 @@ def build_ui() -> gr.Blocks:
                     prd_text = gr.Textbox(
                         label="或粘贴 PRD 文本",
                         placeholder="将 PRD 的 Markdown 内容粘贴到这里…",
-                        lines=6,
+                        lines=10,
                     )
-                    gr.Markdown("### ② 参数")
+                with gr.Column(scale=1):
+                    gr.Markdown("#### ② 参数")
                     model_tb = gr.Textbox(
                         label="LLM 模型",
                         value="deepseek-chat",
@@ -413,12 +414,13 @@ def build_ui() -> gr.Blocks:
                         minimum=1, maximum=10, value=3, step=1,
                     )
                     start_btn = gr.Button("🚀 开始测试", variant="primary")
-                with gr.Column(scale=2):
-                    gr.Markdown("### ③ 运行状态")
-                    task_state = gr.State(None)
-                    status_md = gr.Markdown("（未开始）")
-                    progress_md = gr.Markdown("（等待任务）")
-                    refresh_btn = gr.Button("🔄 手动刷新状态", size="sm")
+
+            # ③ 运行状态：紧凑横条，直接衔接结果区
+            task_state = gr.State(None)
+            with gr.Row():
+                status_md = gr.Markdown("（未开始）", scale=1)
+                progress_md = gr.Markdown("（等待任务）", scale=2)
+            refresh_btn = gr.Button("🔄 手动刷新状态", size="sm", scale=1)
 
         gr.Markdown("### ④ 测试结果")
         with gr.Tab("📋 功能点") as tab_a:
