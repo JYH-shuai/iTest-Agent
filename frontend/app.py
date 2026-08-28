@@ -135,19 +135,27 @@ def api_report_file(task_id: str, fmt: str) -> str:
 # ─────────────────────────────────────────────
 
 def phase_progress(task: dict) -> str:
-    """根据 phase 生成进度条文本"""
+    """根据 phase 生成进度条文本（含各阶段耗时）"""
     phase = task.get("phase", "")
     status = task.get("status", "")
+    # 阶段耗时文本
+    times = task.get("phase_times", {}) or {}
+    times = {k: v for k, v in times.items() if not k.startswith("_")}
+    time_parts = [
+        f"{PHASE_LABELS.get(k, k)} {v}s" for k, v in times.items()
+        if v is not None and v != ""
+    ]
+    time_text = f"\n\n⏱ {' · '.join(time_parts)}" if time_parts else ""
     if status == "completed":
-        return "✅✅✅✅✅ 全部完成"
+        return "✅✅✅✅✅ 全部完成" + time_text
     if status == "failed":
-        return "❌ 任务失败"
+        return "❌ 任务失败" + time_text
     try:
         idx = PHASES.index(phase)
     except ValueError:
         idx = 0
     done = "✅" * idx + "🔄" + "⬜" * (len(PHASES) - idx - 1)
-    return f"{done} 当前：{PHASE_LABELS.get(phase, phase)}"
+    return f"{done} 当前：{PHASE_LABELS.get(phase, phase)}{time_text}"
 
 
 def _load_json(path: str) -> dict:
@@ -225,9 +233,19 @@ def execution_summary(execution: dict) -> str:
     if not execution:
         return "（暂无数据）"
     lines = []
+    # 执行模式徽章（语义化：模拟 vs 真实执行）
+    mode = execution.get("execution_mode", "")
+    if mode == "simulated":
+        lines.append("### 🧪 模拟执行（simulated）\n"
+                     "> 未连接真实被测系统，结果由执行引擎按规则推演，"
+                     "仅用于演示全流程，不代表真实测试结论。\n")
+    elif mode == "mcp":
+        lines.append("### ⚡ MCP 真实执行\n"
+                     "> 通过 MCP Server 调用 Playwright / API Test 真实执行。\n")
     label = {"total": "总用例数", "passed": "通过", "failed": "失败",
              "blocked": "阻塞", "skipped": "跳过",
-             "pass_rate": "通过率", "duration_seconds": "耗时(秒)"}
+             "pass_rate": "通过率", "duration_seconds": "耗时(秒)",
+             "log_path": "执行日志"}
     for k, v in execution.items():
         if isinstance(v, (str, int, float, bool)):
             lines.append(f"- **{label.get(k, k)}**：{v}")
@@ -311,6 +329,33 @@ def refresh_status(task_id):
     return f"{status}", phase_progress(task)
 
 
+def tick_refresh(task_id, auto_enabled):
+    """定时器回调：运行中的任务自动刷新；完成/失败时停表并渲染结果
+
+    返回 (状态, 进度, timer激活, 结果组件们或 None 保持)
+    """
+    if not task_id or not auto_enabled:
+        return gr.skip(), gr.skip(), gr.skip(), \
+            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), \
+            gr.skip(), gr.skip(), gr.skip()
+    try:
+        task = api_get_task(task_id)
+    except Exception:
+        return gr.skip(), gr.skip(), gr.skip(), \
+            gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), \
+            gr.skip(), gr.skip(), gr.skip()
+    status = task.get("status")
+    if status not in ("running", "pending"):
+        # 任务结束：停止定时器，渲染最终结果
+        s = STATUS_LABELS.get(status, status)
+        return s, phase_progress(task), gr.Timer(active=False), \
+            *render_results(task_id)
+    s = STATUS_LABELS.get(status, status)
+    return s, phase_progress(task), gr.Timer(active=True), \
+        gr.skip(), gr.skip(), gr.skip(), gr.skip(), gr.skip(), \
+        gr.skip(), gr.skip(), gr.skip()
+
+
 def do_incremental(base_task_id, selected_ids):
     if not base_task_id:
         raise gr.Error("没有基础任务")
@@ -338,9 +383,12 @@ def load_history_tasks():
 
 def load_history_detail(evt: gr.SelectData, history_data):
     """点击历史任务行 -> 回看结果"""
-    if not history_data or evt.index[0] >= len(history_data):
+    rows = history_data if isinstance(history_data, list) else \
+        (history_data.values.tolist() if history_data is not None
+         and hasattr(history_data, "values") else [])
+    if not rows or evt.index[0] >= len(rows):
         return None
-    task_id_short = history_data[evt.index[0]][0]
+    task_id_short = rows[evt.index[0]][0]
     # task_id 截断过，通过列表接口找全
     tasks = api_list_tasks(100)
     full_id = next(
@@ -420,7 +468,12 @@ def build_ui() -> gr.Blocks:
             with gr.Row():
                 status_md = gr.Markdown("（未开始）", scale=1)
                 progress_md = gr.Markdown("（等待任务）", scale=2)
-            refresh_btn = gr.Button("🔄 手动刷新状态", size="sm", scale=1)
+            with gr.Row():
+                refresh_btn = gr.Button("🔄 手动刷新状态", size="sm", scale=1)
+                auto_cb = gr.Checkbox(
+                    label="自动刷新（运行中每 3 秒）", value=True, scale=1)
+            # 定时器：运行中的任务自动轮询状态
+            status_timer = gr.Timer(value=3, active=False)
 
         gr.Markdown("### ④ 测试结果")
         with gr.Tab("📋 功能点") as tab_a:
@@ -473,14 +526,23 @@ def build_ui() -> gr.Blocks:
                     rounds_sl, key_tb, baseurl_tb],
             outputs=task_state,
         ).then(
-            fn=render_results,
-            inputs=task_state,
-            outputs=[analysis_df, cases_df, review_md, exec_md, report_md,
-                     incr_cb, log_tb],
-        ).then(
             fn=refresh_status,
             inputs=task_state,
             outputs=[status_md, progress_md],
+        ).then(
+            fn=lambda tid, auto: gr.Timer(active=True)
+            if (tid and auto) else gr.Timer(active=False),
+            inputs=[task_state, auto_cb],
+            outputs=[status_timer],
+        )
+
+        # 定时器：任务运行中每 3s 刷新；结束时停表并渲染结果
+        status_timer.tick(
+            fn=tick_refresh,
+            inputs=[task_state, auto_cb],
+            outputs=[status_md, progress_md, status_timer,
+                     analysis_df, cases_df, review_md, exec_md, report_md,
+                     incr_cb, log_tb],
         )
 
         refresh_btn.click(

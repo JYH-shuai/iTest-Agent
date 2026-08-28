@@ -89,11 +89,21 @@ class TaskStore:
         return task_id
 
     def update_task(self, task_id: str, **fields: Any) -> None:
-        """更新任务字段（线程安全）"""
+        """更新任务字段（线程安全）；phase 变更时记录阶段耗时"""
         with self._lock:
             task = self._tasks.get(task_id)
             if task is None:
                 raise KeyError(f"任务不存在: {task_id}")
+            # 阶段耗时统计：phase 变化时闭合上一阶段并开启新阶段
+            new_phase = fields.get("phase")
+            if new_phase and new_phase != task.get("phase"):
+                times = task.setdefault("phase_times", {})
+                prev_start = times.pop("_start_ts", None)
+                prev_phase = task.get("phase")
+                if prev_start and prev_phase:
+                    prev_phase = prev_phase.replace(" ", "_")
+                    times[prev_phase] = round(time.time() - prev_start, 1)
+                times["_start_ts"] = time.time()
             task.update(fields)
             task["updated_at"] = datetime.now(timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"

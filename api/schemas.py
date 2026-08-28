@@ -31,6 +31,7 @@ class TaskStatusResponse(BaseModel):
     execution: Dict[str, Any] = Field(default_factory=dict)
     report_path: str = ""
     traceability_path: str = ""
+    phase_times: Dict[str, Any] = Field(default_factory=dict)
     messages: List[str] = Field(default_factory=list)
     error: str = ""
 

@@ -104,6 +104,7 @@ class ExecutionResult(TypedDict, total=False):
     pass_rate: float                       # 通过率
     duration_seconds: float                # 总耗时
     log_path: str                          # 执行日志路径
+    execution_mode: str                    # 执行模式（simulated / mcp）
 
 
 class IncrementalChange(TypedDict, total=False):

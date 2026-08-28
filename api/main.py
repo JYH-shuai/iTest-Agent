@@ -146,13 +146,23 @@ def _run_pipeline(task_id: str) -> None:
 
         workflow = build_itest_workflow(checkpoint_db_path=checkpoint_db)
         config = {"configurable": {"thread_id": task_id}}
-        final_state = workflow.run(initial_state, config=config)
+        # 流式执行：逐节点更新任务 phase（供 UI 进度与阶段耗时统计）
+        merged: Dict = {}
+        for event in workflow.app.stream(initial_state, config=config):
+            # event 形如 {node_name: state_delta}
+            for _node, delta in event.items():
+                if not isinstance(delta, dict):
+                    continue
+                merged.update(delta)
+                _phase = delta.get("phase", "")
+                if _phase:
+                    TASK_STORE.update_task(task_id, phase=_phase)
 
         # ── 汇总产物到任务记录 ──
-        analysis = final_state.get("analysis_result", {}) or {}
-        suite = final_state.get("test_suite", {}) or {}
-        review = final_state.get("review_result", {}) or {}
-        execution = final_state.get("execution_result", {}) or {}
+        analysis = merged.get("analysis_result", {}) or {}
+        suite = merged.get("test_suite", {}) or {}
+        review = merged.get("review_result", {}) or {}
+        execution = merged.get("execution_result", {}) or {}
 
         # 生成富报告（Markdown + PDF）与 Excel 导出
         from agents.report_generator import ReportGenerator
@@ -162,7 +172,7 @@ def _run_pipeline(task_id: str) -> None:
         analysis_path = analysis.get("file_path", "")
         review_path = os.path.join(output_dir, "review_result.json")
 
-        report_path = final_state.get("report_path", "")
+        report_path = merged.get("report_path", "")
         try:
             generator = ReportGenerator(pdf_enabled=True)
             report_result = generator.generate(
@@ -193,10 +203,10 @@ def _run_pipeline(task_id: str) -> None:
         traceability_path = suite.get("traceability_matrix_path", "")
         status = (
             "completed"
-            if final_state.get("phase") == "completed"
+            if merged.get("phase") == "completed"
             else "failed"
         )
-        raw_messages = final_state.get("messages", []) or []
+        raw_messages = merged.get("messages", []) or []
         messages = [
             m.content if hasattr(m, "content") else str(m)
             for m in raw_messages
@@ -204,7 +214,7 @@ def _run_pipeline(task_id: str) -> None:
         TASK_STORE.update_task(
             task_id,
             status=status,
-            phase=final_state.get("phase", ""),
+            phase=merged.get("phase", ""),
             analysis=analysis,
             test_suite=suite,
             review=review,
@@ -264,6 +274,7 @@ def _to_status_response(task: Dict) -> TaskStatusResponse:
         execution=task.get("execution", {}) or {},
         report_path=task.get("report_path", ""),
         traceability_path=task.get("traceability_path", ""),
+        phase_times=task.get("phase_times", {}) or {},
         messages=messages,
         error=task.get("error", ""),
     )

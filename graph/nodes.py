@@ -826,6 +826,7 @@ def execute_testcases(state: AgentState) -> AgentState:
             pass_rate=pass_rate / 100.0,
             duration_seconds=duration,
             log_path=log_path,
+            execution_mode=exec_mode,
         )
 
         _add_message(
