@@ -14,6 +14,7 @@ iTest-Agent FastAPI 应用入口
     python -m api.main
 """
 
+import json
 import os
 import shutil
 import sys
@@ -277,6 +278,33 @@ def _to_status_response(task: Dict) -> TaskStatusResponse:
         m.content if hasattr(m, "content") else str(m)
         for m in messages
     ]
+    analysis = dict(task.get("analysis", {}) or {})
+    test_suite = dict(task.get("test_suite", {}) or {})
+
+    # 补充明细字段：任务详情只存汇总，function_tree / test_cases 需从产物文件读取。
+    # 这样前端（Gradio / React）无需自己读服务器文件即可渲染完整结果。
+    try:
+        _ap = analysis.get("file_path", "")
+        if _ap and os.path.exists(_ap):
+            with open(_ap, "r", encoding="utf-8") as f:
+                _adata = json.load(f)
+            if "function_tree" in _adata and "function_tree" not in analysis:
+                analysis["function_tree"] = _adata["function_tree"]
+            if "summary" in _adata and "summary" not in analysis:
+                analysis["summary"] = _adata["summary"]
+    except Exception:
+        pass
+
+    try:
+        _sp = test_suite.get("file_path", "")
+        if _sp and os.path.exists(_sp):
+            with open(_sp, "r", encoding="utf-8") as f:
+                _sdata = json.load(f)
+            if "test_cases" in _sdata and "test_cases" not in test_suite:
+                test_suite["test_cases"] = _sdata["test_cases"]
+    except Exception:
+        pass
+
     return TaskStatusResponse(
         task_id=task.get("task_id", ""),
         status=task.get("status", ""),
@@ -285,8 +313,8 @@ def _to_status_response(task: Dict) -> TaskStatusResponse:
         updated_at=task.get("updated_at", ""),
         prd_filename=task.get("prd_filename", ""),
         incremental=bool(task.get("incremental", False)),
-        analysis=task.get("analysis", {}) or {},
-        test_suite=task.get("test_suite", {}) or {},
+        analysis=analysis,
+        test_suite=test_suite,
         review=task.get("review", {}) or {},
         execution=task.get("execution", {}) or {},
         report_path=task.get("report_path", ""),
