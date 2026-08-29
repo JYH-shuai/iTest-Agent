@@ -376,6 +376,7 @@ class TestFullWorkflowE2E:
             print(f"  通过率: {execution.get('pass_rate', 0):.1%}")
             print(f"  报告:   {report_path}")
 
+    @requires_llm
     def test_workflow_messages_chain(self, sample_prd_path):
         """验证工作流消息链的完整性（每个节点都记录了日志）"""
         with tempfile.TemporaryDirectory() as output_dir:
