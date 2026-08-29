@@ -211,14 +211,43 @@ def _llm_judge(
         return None
 
 
+def _env_api_key() -> str:
+    """从环境变量或项目 .env 读取 Judge 的 API Key（复用项目配置）"""
+    key = os.getenv("OPENAI_API_KEY", "")
+    if key:
+        return key
+    # 尝试加载项目根目录 .env
+    try:
+        from dotenv import load_dotenv
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        load_dotenv(os.path.join(root, ".env"))
+        return os.getenv("OPENAI_API_KEY", "")
+    except Exception:
+        return ""
+
+
 def judge_report(
     report_path: str,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
     model: str = "deepseek-chat",
+    use_env_key: bool = True,
 ) -> Dict[str, Any]:
-    """主入口：评估一个测试报告"""
+    """主入口：评估一个测试报告
+
+    use_env_key=True 时（默认），api_key 为空会尝试从环境变量 / .env 读取；
+    use_env_key=False 时，仅用显式传入的 api_key（用于测试强制规则降级）。
+    """
     report = _load_report(report_path)
+
+    # 优先显式传入，其次（use_env_key）环境变量 / .env
+    if not api_key and use_env_key:
+        api_key = _env_api_key()
+    base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.deepseek.com/v1")
+    if not api_key:
+        print("[judge] 未提供 API Key，降级为规则打分")
+        api_key = None
 
     # 尝试 LLM 裁判
     result = _llm_judge(report["title"], report["text"], api_key, base_url, model)
@@ -233,6 +262,40 @@ def judge_report(
         {"key": d["key"], "name": d["name"], "desc": d["desc"]} for d in DIMENSIONS
     ]
     return result
+
+
+def report_to_markdown(result: Dict[str, Any]) -> str:
+    """将 Judge 评估结果转为 Markdown 附录（用于追加到测试报告尾部）"""
+    lines = [
+        "",
+        "---",
+        "## 📊 报告质量评估（LLM-as-a-Judge）",
+        "",
+        f"**评审模型**: {result.get('judge_model', result.get('judge_mode', '规则打分'))}  ",
+        f"**评分模式**: {'LLM 裁判' if result.get('judge_mode') == 'llm' else '规则打分'}  ",
+        f"**总评**: **{result.get('total_score', 0)} / 5.0**（评级 **{result.get('rating', 'N/A')}**）",
+        "",
+        "| 维度 | 分数 | 说明 |",
+        "|------|------|------|",
+    ]
+    for d in result.get("dimensions", []):
+        s = result.get("scores", {}).get(d["key"], {})
+        score = s.get("score", "-")
+        reason = (s.get("reason", "") or "").replace("|", "\\|").replace("\n", " ")
+        lines.append(f"| {d['name']} | {score}/5 | {reason} |")
+
+    if result.get("strengths"):
+        lines += ["", "**💪 亮点:**"]
+        lines += [f"- {x}" for x in result["strengths"]]
+    if result.get("weaknesses"):
+        lines += ["", "**⚠️ 不足:**"]
+        lines += [f"- {x}" for x in result["weaknesses"]]
+    if result.get("improvements"):
+        lines += ["", "**🔧 改进建议:**"]
+        lines += [f"- {x}" for x in result["improvements"]]
+    if result.get("fallback_reason"):
+        lines += ["", f"> 说明：{result['fallback_reason']}"]
+    return "\n".join(lines)
 
 
 def print_report(result: Dict[str, Any]) -> None:

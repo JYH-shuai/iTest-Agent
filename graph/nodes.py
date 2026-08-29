@@ -943,7 +943,6 @@ def generate_report(state: AgentState) -> AgentState:
             report_lines.append(f"- {msg}")
 
         report_md = "\n".join(report_lines)
-
         report_path = os.path.join(output_dir, "test_report.md")
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(report_md)

@@ -80,7 +80,7 @@ class TestJudgeReportFallback:
             "# 报告\n\n## 测试摘要\n通过率 100%\n缺陷 TC-001 断言失败 建议",
             encoding="utf-8",
         )
-        result = judge_report(str(p), api_key=None, base_url=None)
+        result = judge_report(str(p), api_key=None, base_url=None, use_env_key=False)
         assert result["judge_mode"] == "rule_based"
         assert "total_score" in result
         assert result["report_path"] == str(p)

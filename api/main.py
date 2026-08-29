@@ -206,6 +206,23 @@ def _run_pipeline(task_id: str) -> None:
             if merged.get("phase") == "completed"
             else "failed"
         )
+
+        # ── 对最终报告追加 LLM-as-a-Judge 评估（前端报告 Tab 展示）──
+        try:
+            from execution.llm_judge import judge_report, report_to_markdown
+
+            judge_result = judge_report(report_path, use_env_key=True)
+            with open(report_path, "a", encoding="utf-8") as f:
+                f.write("\n" + report_to_markdown(judge_result))
+            TASK_STORE.append_message(
+                task_id,
+                f"报告质量评估完成: {judge_result['total_score']}/5.0 "
+                f"(评级 {judge_result['rating']}, 模式 {judge_result['judge_mode']})",
+            )
+        except Exception as e:
+            # Judge 失败不应阻断主流程
+            TASK_STORE.append_message(task_id, f"报告质量评估失败（已跳过）: {e}")
+
         raw_messages = merged.get("messages", []) or []
         messages = [
             m.content if hasattr(m, "content") else str(m)
