@@ -44,7 +44,7 @@ jobs:
           uv pip install --system -r requirements.lock
           uv pip install --system pytest-cov
 
-      - name: 运行测试（跳过 heavy：需真实 embedding 模型/浏览器）
+      - name: 运行测试（跳过 heavy：需真实 embedding 模型/浏览器；产物由 autouse fixture 自动生成）
         run: |
           python -m pytest tests/ -m "not heavy" \
             --junitxml=junit.xml \

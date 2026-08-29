@@ -77,7 +77,37 @@ def sample_prd_content(sample_prd_path: str) -> str:
 def pytest_configure(config):
     """注册自定义 marker：
     - heavy: 需要真实模型/浏览器的重型测试，默认排除（CI 跳过）
+    - slow: 需要真实 LLM 调用的慢速测试
     """
     config.addinivalue_line(
         "markers", "heavy: 需要真实 embedding 模型或浏览器的重型测试，CI 默认跳过"
     )
+    config.addinivalue_line(
+        "markers", "slow: 需要真实 LLM 调用/较长耗时的慢速测试"
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_fixture_outputs():
+    """测试前置：若 tests/output/ 产物缺失，自动调用 make_fixtures 生成。
+
+    tests/output/ 被 .gitignore 排除、属运行时生成物。若未生成，
+    TestReportGeneratorE2E 等测试会在干净环境（如 CI / clean checkout）失败。
+    此 fixture 保证任何环境下测试自包含、可重复运行。
+    """
+    output_dir = os.path.join(_project_root, "tests", "output")
+    required = ("execution_log.json", "test_suite.json", "review_result.json")
+    missing = any(
+        not os.path.exists(os.path.join(output_dir, name)) for name in required
+    )
+    if missing:
+        # 通过子进程调用 make_fixtures，避免污染当前进程状态
+        import subprocess
+
+        script = os.path.join(_project_root, "tests", "make_fixtures.py")
+        subprocess.run(
+            [sys.executable, script],
+            cwd=_project_root,
+            check=True,
+            capture_output=True,
+        )
