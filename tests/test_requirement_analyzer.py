@@ -91,8 +91,9 @@ class TestPRDReading:
 class TestRAGRetrieval:
     """测试 RAG 检索上下文生成"""
 
+    @pytest.mark.heavy
     def test_retrieve_methodology_returns_context(self, sample_prd_content):
-        """验证 RAG 检索返回非空上下文"""
+        """验证 RAG 检索返回非空上下文（需真实 embedding 模型 + chroma_db）"""
         from agents.requirement_analyzer import RequirementAnalyzer
 
         analyzer = RequirementAnalyzer()
