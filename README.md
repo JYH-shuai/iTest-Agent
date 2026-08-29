@@ -171,6 +171,22 @@ python docker/run_demo_cases.py
 `BUG-001` 密码校验文案错误（预期 8-20 位，实际提示 6-20 位）、
 `BUG-002` 登录失败无任何提示。
 
+## LLM-as-a-Judge（报告质量评估）
+
+用独立 LLM（默认 DeepSeek）作为裁判，对测试报告做 5 维质量评分
+（完整性 / 可追溯性 / 缺陷清晰度 / 可读性 / 可执行性），并给出
+亮点、不足、改进建议；无 API Key 时自动降级为规则打分。
+
+```bash
+# 评估一份测试报告（走真实 LLM，读 .env 的 OPENAI_API_KEY）
+python -m execution.llm_judge --report output/demo_test_report.md
+
+# 无 API Key 时自动降级为规则打分
+env -u OPENAI_API_KEY python -m execution.llm_judge --report output/demo_test_report.md
+```
+
+> Judge 能识别语义级问题（如"报告缺测试摘要/修复建议"），比关键词规则打分更准。
+
 ## API 接口
 
 | 方法 | 路径 | 说明 |
