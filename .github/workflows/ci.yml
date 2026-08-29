@@ -1,0 +1,67 @@
+# iTest-Agent CI — 智能测试系统持续集成
+# 触发：push / PR；Python 3.11；uv 快速安装 + 依赖缓存；跳过 heavy 测试（需真模型/浏览器）
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 缓存依赖（uv cache）
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('requirements.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: 安装依赖（锁定版本）
+        run: |
+          uv pip install --system -r requirements.lock
+          uv pip install --system pytest-cov
+
+      - name: 运行测试（跳过 heavy：需真实 embedding 模型/浏览器）
+        run: |
+          python -m pytest tests/ -m "not heavy" \
+            --junitxml=junit.xml \
+            --cov=. --cov-report=term-missing -p no:cacheprovider
+
+      - name: 上传测试报告（JUnit XML）
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: junit.xml
+          retention-days: 7
+
+      - name: 上传覆盖率数据
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: .coverage
+          retention-days: 7

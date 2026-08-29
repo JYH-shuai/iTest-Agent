@@ -1,5 +1,17 @@
 # iTest-Agent — 基于 LangGraph 多 Agent 协作的智能测试系统
 
+<div align="center">
+
+![CI](https://github.com/JYH-shuai/iTest-Agent/actions/workflows/ci.yml/badge.svg?branch=main)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-0.2-1C3C3C)
+![MCP](https://img.shields.io/badge/MCP-标准协议-6C5CE7)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688)
+![Playwright](https://img.shields.io/badge/Playwright-1.45-2EAD33)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+</div>
+
 输入 **PRD 需求文档**，自动完成 **需求分析 → 测试用例生成 → 用例评审 → 用例执行 → 测试报告** 的全流程闭环。通过自研 MCP Server 对接真实测试工具（Playwright 浏览器 UI + HTTP 接口），实现“生成即可执行”。
 
 ## 核心特性

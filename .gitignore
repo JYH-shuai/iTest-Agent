@@ -31,3 +31,4 @@ chroma_db/
 
 # 测试缓存
 .pytest_cache/
+.coverage

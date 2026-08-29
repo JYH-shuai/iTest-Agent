@@ -13,6 +13,9 @@ import os
 
 import pytest
 
+# 需要真实 embedding 模型（torch），CI 默认跳过
+pytestmark = pytest.mark.heavy
+
 
 class TestKnowledgeBaseInit:
     """测试知识库初始化"""

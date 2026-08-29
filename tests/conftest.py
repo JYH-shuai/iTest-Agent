@@ -72,3 +72,12 @@ def sample_prd_content(sample_prd_path: str) -> str:
     """读取样例 PRD 文本内容"""
     with open(sample_prd_path, "r", encoding="utf-8") as f:
         return f.read()
+
+
+def pytest_configure(config):
+    """注册自定义 marker：
+    - heavy: 需要真实模型/浏览器的重型测试，默认排除（CI 跳过）
+    """
+    config.addinivalue_line(
+        "markers", "heavy: 需要真实 embedding 模型或浏览器的重型测试，CI 默认跳过"
+    )
