@@ -282,7 +282,7 @@ def _to_status_response(task: Dict) -> TaskStatusResponse:
     test_suite = dict(task.get("test_suite", {}) or {})
 
     # 补充明细字段：任务详情只存汇总，function_tree / test_cases 需从产物文件读取。
-    # 这样前端（Gradio / React）无需自己读服务器文件即可渲染完整结果。
+    # 这样前端（React）无需自己读服务器文件即可渲染完整结果。
     try:
         _ap = analysis.get("file_path", "")
         if _ap and os.path.exists(_ap):

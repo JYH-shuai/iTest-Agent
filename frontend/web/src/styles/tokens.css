@@ -1,0 +1,101 @@
+/* =========================================================
+   iTest-Agent Design Tokens
+   Extracted from the accepted visual concept
+   Palette: Deep Slate Navy + Electric Cyan + Violet Accent
+   ========================================================= */
+
+:root {
+  /* ==== Backgrounds ==== */
+  --bg-app: #070b18;
+  --bg-surface: #0f1628;
+  --bg-surface-2: #151d33;
+  --bg-elevated: #1a2440;
+  --bg-hover: rgba(34, 211, 238, 0.06);
+  --bg-active: rgba(34, 211, 238, 0.12);
+
+  /* ==== Borders ==== */
+  --border-subtle: rgba(148, 163, 184, 0.08);
+  --border-default: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(34, 211, 238, 0.22);
+  --border-focus: rgba(34, 211, 238, 0.55);
+
+  /* ==== Brand Colors ==== */
+  --brand-primary: #22d3ee;
+  --brand-primary-rgb: 34, 211, 238;
+  --brand-secondary: #8b5cf6;
+  --brand-secondary-rgb: 139, 92, 246;
+  --brand-primary-dim: rgba(34, 211, 238, 0.18);
+  --brand-primary-soft: rgba(34, 211, 238, 0.08);
+
+  /* ==== Semantic Colors ==== */
+  --color-success: #10b981;
+  --color-success-soft: rgba(16, 185, 129, 0.12);
+  --color-warning: #f59e0b;
+  --color-warning-soft: rgba(245, 158, 11, 0.12);
+  --color-danger: #ef4444;
+  --color-danger-soft: rgba(239, 68, 68, 0.12);
+  --color-info: #3b82f6;
+  --color-info-soft: rgba(59, 130, 246, 0.12);
+  --color-skipped: #64748b;
+  --color-skipped-soft: rgba(100, 116, 139, 0.12);
+
+  /* ==== Text ==== */
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-on-primary: #05151a;
+  --text-bright: #f8fafc;
+
+  /* ==== Typography ==== */
+  --font-display: 'Space Grotesk', 'Noto Sans SC', system-ui, sans-serif;
+  --font-body: 'Noto Sans SC', 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --fs-xxs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+  --fs-4xl: 38px;
+
+  --lh-tight: 1.2;
+  --lh-base: 1.5;
+  --lh-relaxed: 1.7;
+
+  /* ==== Spacing ==== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ==== Radii ==== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ==== Elevation (Shadows) ==== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow-cyan: 0 0 24px rgba(34, 211, 238, 0.25);
+  --shadow-glow-violet: 0 0 24px rgba(139, 92, 246, 0.2);
+
+  /* ==== Motion ==== */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+}

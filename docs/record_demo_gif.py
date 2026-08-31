@@ -1,6 +1,10 @@
 """
 录制 iTest-Agent 前端完整流水线演示 GIF（v3）。
 
+⚠️ 已废弃：本脚本针对旧的 Gradio 前端（frontend/app.py，已移除）编写，
+   依赖 .gradio-container DOM。新 React 前端（frontend/web, 端口 7861）
+   需要重写选择器后才能复用。
+
 流程：打开前端 -> 上传 sample PRD -> 勾选 Mock LLM -> 开始测试
       -> 等待任务完成 -> 轮播结果 Tab（功能点/用例/评审/执行/报告）
 

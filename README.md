@@ -30,7 +30,7 @@
 | 增量更新 | 需求变更时仅重生成变更功能对应用例 |
 | MCP 工具执行 | 自研 Playwright MCP Server 与 API Test MCP Server，标准协议对接真实工具 |
 | 模拟降级 | 无浏览器/无 API Key 环境自动降级，保证全流程可演示 |
-| Web UI | Gradio 可视化界面：PRD 上传、进度跟踪、用例/报告查看、增量更新、历史任务 |
+| Web UI | React 可视化界面：PRD 上传、进度跟踪、用例/报告查看（含 LLM-as-a-Judge 评分）、增量更新、历史任务 |
 | 多格式报告 | Markdown / PDF / JSON / Excel |
 | 一键部署 | Docker Compose 启动 Agent 服务 + 执行环境 |
 
@@ -78,8 +78,7 @@ iTest-Agent/
 ├── knowledge_base/             # RAG 知识库（方法论 + 历史用例）
 ├── models/                     # 数据模型（TestCase/追溯）
 ├── exporters/                  # Excel / JSON 导出
-├── frontend/                   # Gradio Web UI
-│   └── app.py                  # 可视化界面（对接 FastAPI）
+├── frontend/web/               # React Web UI（Vite + React，对接 FastAPI）
 ├── docker/                     # Dockerfile + docker-compose
 ├── docs/需求分析.md            # 需求分析说明书
 └── tests/                      # 单元/集成测试
@@ -114,17 +113,18 @@ docker compose up -d --build
 
 启动后：
 - API 服务：http://localhost:8000 （Swagger 文档：http://localhost:8000/docs）
-- Web UI：http://localhost:7860 （见下文「Web UI」）
+- Web UI：http://localhost:7861 （见下文「Web UI」，需另行启动前端 dev server 或构建部署）
 - Playwright MCP Server（SSE）：http://localhost:8001
 - API Test MCP Server（SSE）：http://localhost:8002
 
-### 2.5 Web UI（Gradio）
+### 2.5 Web UI（React + Vite）
 
 ```bash
-# 先启动 API 服务（端口 8000），再启动 UI
-pip install gradio
-python frontend/app.py
-# 打开 http://127.0.0.1:7860
+# 先启动 API 服务（端口 8000），再启动前端
+cd frontend/web
+npm install
+npm run dev
+# 打开 http://127.0.0.1:7861
 ```
 
 功能：
@@ -136,7 +136,7 @@ python frontend/app.py
 - 增量更新：勾选变更功能点，仅重生成受影响用例
 - 历史任务：最近 20 条任务，点击行回看结果
 
-UI 通过环境变量配置后端地址：`ITEST_API_BASE`（默认 `http://127.0.0.1:8000`）、`ITEST_UI_PORT`（默认 `7860`）。
+前端通过 Vite 代理将 `/api`、`/health` 转发到后端（见 `frontend/web/vite.config.js`，默认 `http://127.0.0.1:8000`）。
 
 ### 3. 命令行演示完整工作流
 
